@@ -12,11 +12,11 @@ public class Main {
 		
 		System.out.println("Deine Eingabe lautet: "+data);*/
 		
-		FinalNode a = NodeFactory.getInstance("a",false);
-		FinalNode b = NodeFactory.getInstance("b",false);
-		FinalNode c = NodeFactory.getInstance("c",false);
-		FinalNode d = NodeFactory.getInstance("d",false);
-		FinalNode e = NodeFactory.getInstance("e",true);
+		NodeAbstract a = NodeFactory.getInstance("a",false);
+		NodeAbstract b = NodeFactory.getInstance("b",false);
+		NodeAbstract c = NodeFactory.getInstance("c",false);
+		NodeAbstract d = NodeFactory.getInstance("d",false);
+		NodeAbstract e = NodeFactory.getInstance("e",true);
 		
 		a.setupNeighbours(b, d);
 		b.setupNeighbours(c);
