@@ -14,6 +14,7 @@ public class FinalNode extends NodeAbstract {
 	private boolean msgSent;
 	private Node president;
 	private int replies;
+	private int expMsg;
 	private Node messenger;
 	protected final Set<Node> neighbours = new HashSet<Node>();
 
@@ -37,9 +38,21 @@ public class FinalNode extends NodeAbstract {
 			//Messenger und als "president" mit.
 			//Wenn nicht schick den "president" mit und sich selbst als messenger
 			if(initiator) {
-				neighbour.wakeup(this, this);
+				if(!neighbour.isAwake()) {
+					neighbour.wakeup(this, this);
+				}else {
+					//wenn der knoten schon wach ist dann erwartete Nachrichten -1
+					neighbour.wakeup(this, this);
+					--expMsg;
+				}
 			}else {
-				neighbour.wakeup(president, this);
+				if(!neighbour.isAwake()) {
+					neighbour.wakeup(president, this);
+				}else {
+					//wenn der knoten schon wach ist dann erwartete Nachrichten -1
+					neighbour.wakeup(president, this);
+					--expMsg;
+				}
 			}
 		}else {
 			System.out.println(name + "ruft nicht"+neighbour+"an da er von dem angerufen wurde");
@@ -48,8 +61,10 @@ public class FinalNode extends NodeAbstract {
 
 	@Override
 	public synchronized void wakeup(Node neighbour, Node messenger) {
-		//Nachrichten erhalten +1
-		++replies;
+		//Nachrichten an sich selbst ignorieren, ansonsten replies +1
+		if(messenger != this) {
+			++replies;	
+		}
 		//Wenn der Knoten noch nicht wach ist weck ihn auf und speicher den Knoten der diesen aufgeweckt hat in messenger.
 		if(!awake) {
 			awake = true;
@@ -66,22 +81,13 @@ public class FinalNode extends NodeAbstract {
 		}
 		
 		if(!neighbours.contains(messenger)) {
-			while(reading) {
-				try {
-					synchronized(messenger) {
-						messenger.wait();
-					}
-					
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-			neighbours.add(messenger);
+				++expMsg;
 		}
 	}
 
 	@Override
 	public synchronized void echo(Node neighbour) {
+		++replies;
 		System.out.println("Echo von "+ name+" aufgerufen durch "+neighbour);
 	}
 
@@ -90,6 +96,7 @@ public class FinalNode extends NodeAbstract {
 		for (int i = 0; i < neighbours.length; i++) {
 			this.neighbours.add(neighbours[i]);
 		}
+		expMsg = this.neighbours.size();
 	}
 
 	public void run() {
@@ -110,12 +117,9 @@ public class FinalNode extends NodeAbstract {
 				Iterator<Node> it = neighbours.iterator();
 				while (it.hasNext()) {
 					hello(it.next());
-					notifyAll();
 				}
 				msgSent = true;
 				reading = false;
-				System.out.println("test");
-				System.out.println("test123");
 			}
 		}
 		// wenn ?irgendwas? dann sende ein echo an messenger
@@ -126,11 +130,16 @@ public class FinalNode extends NodeAbstract {
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			if(replies == neighbours.size()) {
+			if(replies == expMsg && !initiator) {
 				messenger.echo(this);
 				notdone = false;
-			}else {
-				System.out.println(name+": "+replies+" Nachrichten erhalten "+ neighbours.size()+" benötigt");
+			}
+			else if(replies == expMsg && initiator) {
+				System.out.println("Initiator fertig");
+				notdone = false;
+			}
+			else {
+				System.out.println(name+": "+replies+" Nachrichten erhalten "+ expMsg+" benötigt");
 			}
 		}
 	}
