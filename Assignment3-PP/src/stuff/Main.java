@@ -18,17 +18,47 @@ public class Main {
 		NodeAbstract d = NodeFactory.getInstance("d",false);
 		NodeAbstract e = NodeFactory.getInstance("e",true);
 		
+//		NodeAbstract a = NodeFactory.getInstance("a",false);
+//		NodeAbstract b = NodeFactory.getInstance("b",false);
+//		NodeAbstract c = NodeFactory.getInstance("c",false);
+//		NodeAbstract d = NodeFactory.getInstance("d",false);
+//		NodeAbstract e = NodeFactory.getInstance("e",true);
+//		NodeAbstract f = NodeFactory.getInstance("f",false);
+//		NodeAbstract g = NodeFactory.getInstance("g",false);
+//		NodeAbstract h = NodeFactory.getInstance("h",false);
+//		NodeAbstract i = NodeFactory.getInstance("i",false);
+		
 		a.setupNeighbours(b, d);
 		b.setupNeighbours(c);
 		c.setupNeighbours(a, c);
 		d.setupNeighbours(c, d);
 		e.setupNeighbours(a, b, c, d);
 		
+//		a.setupNeighbours(b, d, f);
+//		b.setupNeighbours(c);
+//		c.setupNeighbours(a, c);
+//		d.setupNeighbours(c, d);
+//		f.setupNeighbours(g, h, i);
+//		g.setupNeighbours(h, b);
+//		h.setupNeighbours(i);
+//		i.setupNeighbours(c, d);
+//		e.setupNeighbours(a, b, c, d,h);
+		
 		a.start();
 		b.start();
 		c.start();
 		d.start();
 		e.start();
+		
+//		a.start();
+//		b.start();
+//		c.start();
+//		d.start();
+//		f.start();
+//		g.start();
+//		h.start();
+//		i.start();
+//		e.start();
 		
 	}
 }
