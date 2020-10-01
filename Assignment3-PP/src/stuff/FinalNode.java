@@ -94,14 +94,16 @@ public class FinalNode extends NodeAbstract {
 						//und c -> a gleichzeitig anruft
 						// kann es passieren das sich beide eine wakeup nachricht schicken was nicht vorgesehen ist da über jede kante nur eine nachricht pro Typ geschickt werden soll
 						// Passiert in 80% der Fälle needs to be Fixed da so der Algorithmus niemals funktionieren wird
-	
-						if (!neighbour.sendMessage(this)) {
-							sendNeighbours.remove(neighbour);
-							System.out.println(name + " ruft " + neighbour + " an");
-							neighbour.wakeup(this);
-						} else {
-							System.out.println(neighbour + " Hat diesem Knoten " + name
+						//Maybe synchronized did fix this ?? Please take a look
+						synchronized (FinalNode.class) {
+							if (!neighbour.sendMessage(this)) {
+								sendNeighbours.remove(neighbour);
+								System.out.println(name + " ruft " + neighbour + " an");
+								neighbour.wakeup(this);
+							} else {
+								System.out.println(neighbour + " Hat diesem Knoten " + name
 									+ " schon eine WakeupNachricht geschickt.");
+							}
 						}
 					} else {
 						System.out.println(name + "ruft nicht " + neighbour
