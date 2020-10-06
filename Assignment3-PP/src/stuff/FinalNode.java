@@ -1,6 +1,7 @@
 package stuff;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -13,7 +14,6 @@ public class FinalNode extends NodeAbstract {
 
 	protected final boolean initiator;
 	private boolean awake;
-	private boolean msgSent;
 
 	private Node messenger;
 
@@ -21,15 +21,17 @@ public class FinalNode extends NodeAbstract {
 	private int expMsg;
 
 	protected final Set<Node> neighbours = new HashSet<Node>();
-	// private Set<Node> sendNeighbours = new HashSet<Node>();
 	private List<Node> sendNeighbours;
+	private List<Node> synchroList;
+	
+	private List<Node> path = new ArrayList<Node>();
+	private List<List<Node>> allPaths = new ArrayList<List<Node>>();
 
 	public FinalNode(String name, boolean initiator) {
 		super(name, initiator);
 		this.name = name;
 		this.initiator = initiator;
 		awake = false;
-		msgSent = false;
 		replies = 0;
 	}
 
@@ -42,13 +44,14 @@ public class FinalNode extends NodeAbstract {
 
 	@Override
 	public synchronized void wakeup(Node messenger) {
-		++replies;
+		incrementReplies();
 		// Wenn der Knoten noch nicht wach ist weck ihn auf und speicher den Knoten der
 		// diesen aufgeweckt hat in messenger.
 		if (!awake) {
-			awake = true;
 			System.out.println(name + " ist nun wach von " + messenger);
 			this.messenger = messenger;
+			awake = true;
+			this.notifyAll();
 		} else {
 			System.out.println(name + " war schon wach. Hat aber Nachricht von " + messenger + " erhalten.");
 		}
@@ -56,89 +59,106 @@ public class FinalNode extends NodeAbstract {
 
 	@Override
 	public synchronized void echo(Node neighbour) {
-		++replies;
+		incrementReplies();
 		System.out.println("Echo von " + name + " aufgerufen durch " + neighbour);
 	}
 
 	public void run() {
 		expMsg = this.neighbours.size();
 		sendNeighbours = new ArrayList<Node>(neighbours);
+		synchroList = Collections.synchronizedList(sendNeighbours);
 		// Teste ob Knoten initiator ist und gebe Nachbarn aus
 		isInitiator();
 		HashSettoString(neighbours);
-		try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		// Wenn noch keine Nachrichten versendet worden sind und der Knoten wach ist.
-		// Sende Nachrichten an alle Nachbarn. Anschließend msgSent auf true.
-		while (!msgSent) {
-			if (awake) {
-				Iterator<Node> it = neighbours.iterator();
-				// war vorher in der hello method
-				while (it.hasNext()) {
-					Node neighbour = it.next();
-					// Wenn messenger(der Knoten der diesen aufgeweckt hat) == dem Knoten ist der
-					// eine wakeup Nachricht bekommen soll
-					// dann nichts tun
-					if (!(messenger == neighbour)) {
-						System.out.println(name + " überprüft " + neighbour + " anzurufen");
-						//Wenn dieser Knoten noch in der sendNeighbours Liste des Knoten enthalten ist den er anrufen will. Ruf diesen an.
-						//Dann entferne den Angerufenen Knoten aus dieser sendNeighbour Liste
-						//Und wecke den Knoten auf
-						//************************************************************
-						//************************* Problem *************************
-						//************************************************************
-						//Wenn a -> c anruft 
-						//und c -> a gleichzeitig anruft
-						// kann es passieren das sich beide eine wakeup nachricht schicken was nicht vorgesehen ist da über jede kante nur eine nachricht pro Typ geschickt werden soll
-						// Passiert in 80% der Fälle needs to be Fixed da so der Algorithmus niemals funktionieren wird
-						//Maybe synchronized did fix this ?? Please take a look
-						synchronized (FinalNode.class) {
-							if (!neighbour.sendMessage(this)) {
-								sendNeighbours.remove(neighbour);
-								System.out.println(name + " ruft " + neighbour + " an");
-								neighbour.wakeup(this);
-							} else {
-								System.out.println(neighbour + " Hat diesem Knoten " + name
-									+ " schon eine WakeupNachricht geschickt.");
-							}
-						}
-					} else {
-						System.out.println(name + "ruft nicht " + neighbour
-								+ " an da er von diesem Knoten bereits eine Wakeup Nachricht bekommen hat");
-					}
-					// bis hier
-				}
-				msgSent = true;
-			}
-		}
-		// wenn ?irgendwas? dann sende ein echo an messenger
-		sendEcho();
-	}
-
-	private void sendEcho() {
-		boolean notdone = true;
-		while (true && notdone) {
-			System.out.println("Its me: " + name);
+		//Wenn Knoten nicht wach ist: wait()
+		while (!awake) {
 			try {
-				Thread.sleep(1000);
+				synchronized (this) {
+					this.wait();
+				}
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			if (replies == expMsg && !initiator) {
-				messenger.echo(this);
-				notdone = false;
-			} else if (replies == expMsg && initiator) {
-				System.out.println("Initiator fertig");
-				notdone = false;
-			} else {
-				System.out.println(name + ": " + replies + " Nachrichten erhalten " + expMsg + " benötigt");
-			}
 		}
+		sendWakeup();
 	}
 
+
+	
+	private void sendWakeup() {
+		if (awake) {
+			Iterator<Node> it = neighbours.iterator();
+			while (it.hasNext()) {
+				Node neighbour = it.next();
+				// Wenn messenger(der Knoten der diesen aufgeweckt hat) == dem Knoten ist der
+				// eine wakeup Nachricht bekommen soll
+				// dann nichts tun
+				if (!(messenger == neighbour)) {
+					// Wenn dieser Knoten noch in der sendNeighbours Liste des Knoten enthalten ist
+					// den er anrufen will. Ruf diesen an.
+					// Dann entferne den Angerufenen Knoten aus dieser sendNeighbour Liste
+					// Und wecke den Knoten auf
+					if (!neighbour.messageSent(this)) {
+						synchroList.remove(neighbour);
+						System.out.println(name + " ruft " + neighbour + " an");
+						neighbour.wakeup(this);
+					} else {
+						System.out.println(
+								neighbour + " Hat diesem Knoten " + name + " schon eine WakeupNachricht geschickt.");
+					}
+				} else {
+					System.out.println(name + " ruft nicht " + neighbour
+							+ " an da er von diesem aufgeweckt wurde");
+				}
+			}
+		}
+		sendEcho();
+	}
+	
+//		private void sendEcho() {
+//		boolean notdone = true;
+//		while (notdone) {
+//			if (replies == expMsg && !initiator) {
+//				path.add(this);
+//				messenger.echo(this);
+//				notdone = false;
+//			} else if (replies == expMsg && initiator) {
+//				System.out.println("Initiator fertig");
+//				notdone = false;
+//			} else {
+//				System.out.println(name + ": " + replies + " Nachrichten erhalten " + expMsg + " benötigt");
+//			}
+//		}
+//	}
+	
+	private void sendEcho() {
+		while (!(replies == expMsg)) {
+			try {
+				synchronized (this) {
+					this.wait(200);
+					System.out.println(name + ": " + replies + " Nachrichten erhalten " + expMsg + " benötigt");
+				}
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		if (!initiator) {
+			messenger.echo(this);
+		} else if (initiator) {
+			System.out.println("Initiator fertig");
+			for(List<Node> list : allPaths) {
+				System.out.println(list);
+			}
+		} else {
+			System.out.println(name + ": " + replies + " Nachrichten erhalten " + expMsg + " benötigt");
+		}
+	}
+	
+	private synchronized void incrementReplies() {
+		++replies;
+		this.notifyAll();
+	}
+	
 	private void isInitiator() {
 		// Wenn der Knoten ein Initiator ist, ist er automatisch wach.
 		if (initiator) {
@@ -165,11 +185,14 @@ public class FinalNode extends NodeAbstract {
 		}
 	}
 
-	public boolean sendMessage(Node messenger) {
-		if (sendNeighbours.contains(messenger)) {
+	public boolean messageSent(Node messenger) {
+		if (synchroList.contains(messenger)) {
 			return false;
 		} else {
-			--expMsg;
+			synchronized (this) {
+				--expMsg;
+				this.notifyAll();
+			}
 			return true;
 		}
 	}
