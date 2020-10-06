@@ -24,8 +24,8 @@ public class FinalNode extends NodeAbstract {
 	private List<Node> sendNeighbours;
 	private List<Node> synchroList;
 	
-	private List<Node> path = new ArrayList<Node>();
-	private List<List<Node>> allPaths = new ArrayList<List<Node>>();
+//	private List<Node> path = new ArrayList<Node>();				
+//	private List<List<Node>> allPaths = new ArrayList<List<Node>>();
 
 	public FinalNode(String name, boolean initiator) {
 		super(name, initiator);
@@ -115,6 +115,7 @@ public class FinalNode extends NodeAbstract {
 		sendEcho();
 	}
 	
+	//******alte sendEcho() version******
 //		private void sendEcho() {
 //		boolean notdone = true;
 //		while (notdone) {
@@ -146,14 +147,12 @@ public class FinalNode extends NodeAbstract {
 			messenger.echo(this);
 		} else if (initiator) {
 			System.out.println("Initiator fertig");
-			for(List<Node> list : allPaths) {
-				System.out.println(list);
-			}
 		} else {
 			System.out.println(name + ": " + replies + " Nachrichten erhalten " + expMsg + " benötigt");
 		}
 	}
 	
+	//sicherstellen das replies nur von einem Thread erhöht wird
 	private synchronized void incrementReplies() {
 		++replies;
 		this.notifyAll();
@@ -166,10 +165,6 @@ public class FinalNode extends NodeAbstract {
 			awake = true;
 		} else
 			System.out.println("Knoten " + name + " ist NICHT der Initiator");
-	}
-
-	public boolean isAwake() {
-		return awake;
 	}
 
 	private void HashSettoString(Set<?> set) {
@@ -190,6 +185,8 @@ public class FinalNode extends NodeAbstract {
 			return false;
 		} else {
 			synchronized (this) {
+				//Dieser Knoten erwartet eine nachricht weniger da er keine wakeup nachricht von dem Knoten bekommen wird. 
+				//Da er diesem schon eine geschickt hat
 				--expMsg;
 				this.notifyAll();
 			}

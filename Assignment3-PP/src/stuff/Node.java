@@ -10,8 +10,6 @@ public interface Node {
 
 	public void echo(Node neighbour);
 
-	public boolean isAwake();
-
 	public boolean messageSent(Node finalNode);
 
 }
