@@ -15,7 +15,7 @@ public class RandomString {
 	    String numbers = "0123456789";
 
 	    // combine all strings
-	    String alphaNumeric = upperAlphabet + lowerAlphabet + numbers;
+	    String alphaNumeric = upperAlphabet + lowerAlphabet; 	//+ numbers
 
 	    // create random string builder
 	    StringBuilder sb = new StringBuilder();

@@ -39,4 +39,6 @@ public abstract class NodeAbstract extends Thread implements Node {
 		return name;
 	}
 
+	protected abstract void setupValues();
+
 }

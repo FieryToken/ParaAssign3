@@ -12,11 +12,12 @@ public interface Node {
 
 	public boolean messageSent(Node finalNode);
 
-	void electionEcho(Node neighbour, List<List<Node>> allPaths, String id);
+	public void electionEcho(Node neighbour, String id);
 
 	public void electionWakeup(Node finalNode, String id);
 
 	public void incrementReplies(int i);
 
+	public void changeId(String id);
 
 }
