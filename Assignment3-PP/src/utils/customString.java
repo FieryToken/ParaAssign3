@@ -5,7 +5,7 @@ public class customString {
 	private volatile String a;
 	
 	public customString() {
-		a = new String();
+		a = "";
 	}
 	
 	public customString(String a) {

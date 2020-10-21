@@ -27,17 +27,17 @@ public class customInt {
 		return change(3,0);
 	}
 	
-	private synchronized int change(int n, int p) {
-		if(n == 0) {
+	private synchronized int change(int operation, int p) {
+		if(operation == 0) {
 			++a;
-		}else if(n == 1) {
+		}else if(operation == 1) {
 			--a;
-		}else if(n == 2) {
+		}else if(operation == 2) {
 			a = p;
-		}else if(n == 3) {
+		}else if(operation == 3) {
 			return a;
 		}
-		return 0;
+		return a;
 	}
 	
 }

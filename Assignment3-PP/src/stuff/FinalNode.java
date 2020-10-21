@@ -21,6 +21,7 @@ public class FinalNode extends NodeAbstract {
 
 	private Node messenger;
 
+	@SuppressWarnings("unused")
 	private static int totalNodes;
 	private customInt replies;
 	private customInt expMsg;

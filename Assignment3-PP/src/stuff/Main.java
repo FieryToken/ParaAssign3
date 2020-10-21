@@ -10,9 +10,28 @@ public class Main {
 	static int maxNeighbours = 10;
 	static List<NodeAbstract> nodes;
 	static boolean election = false;
-
+	static String graphentyp;
+	static int third_type;
 	public static void main(String[] args) {
-
+		for (int i = 0; i < args.length; i++) {
+			if(args[i] != "") {
+				try {
+					if(i == 0) {
+						graphentyp = args[i];
+					}
+					if(i == 1) {
+						nodeCount = Integer.parseInt(args[i]);	
+					}
+					if((graphentyp == "Tree" || graphentyp == "Random") && i == 3) {
+						third_type = Integer.parseInt(args[3]);
+					}
+				}catch(Exception e) {
+					System.out.println("Error Command Line Argument: '" +i+"' not an Integer but needs to be one!");
+				}
+			}else {
+				System.out.println("Error Command Line Argument '" +i+"' missing!");
+			}
+		}
 		startThis();
 		/*
 		 * String data; Scanner scan = new Scanner(System.in);
@@ -127,11 +146,19 @@ public class Main {
 
 	private static void startThis() {
 		createNodes();
-//		setupNodeNeighbours();
-//		Ring();
-		Random();
-//		Complete();
-//		Tree();
+		if(graphentyp == "Ring") {
+		Ring();
+		}
+		if(graphentyp == "Random") {
+			maxNeighbours = third_type;
+			Random();
+		}
+		if(graphentyp == "Complete") {
+			Complete();
+		}
+		if(graphentyp == "Tree") {
+			Tree(third_type);
+		}
 		setupNodeValues();
 		startNodes();
 	}
@@ -162,11 +189,11 @@ public class Main {
 
 	}
 
-	private static void Tree() {
+	private static void Tree(int branches_given) {
 		for(int n = 0; n < nodes.size()/2; ++n) {
 			Collections.swap(nodes, n, nodes.size()-1-n);
 		}
-		int branches = 5;
+		int branches = branches_given;
 		int ab = 0;
 		int bis = 0;
 		for (int i = 0; i < branches; ++i) {
@@ -251,13 +278,6 @@ public class Main {
 				} else {
 					nodes.add(NodeFactory.getInstance(Integer.toString(i), false));
 				}
-			}
-		} else {
-			boolean leader = false;
-			for (int i = 0; i < nodeCount; ++i) {
-				leader = Math.random() < 0.5;
-				String name = RandomString.createString(10);
-				nodes.add(NodeFactory.getInstance(name, leader));
 			}
 		}
 	}
