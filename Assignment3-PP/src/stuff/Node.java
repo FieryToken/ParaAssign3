@@ -8,7 +8,7 @@ public interface Node {
 
 	public void wakeup(Node sender);
 
-	public void echo(Node neighbour);
+	public void echo(Node neighbour, List<List<Node>> allPaths);
 
 	public boolean messageSent(Node finalNode);
 

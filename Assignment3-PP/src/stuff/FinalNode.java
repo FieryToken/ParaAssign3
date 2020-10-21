@@ -8,31 +8,38 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import utils.customBool;
+import utils.customInt;
+
 public class FinalNode extends NodeAbstract {
 
 	protected final String name;
 
 	protected final boolean initiator;
 	private boolean awake;
+	private customBool active;
 
 	private Node messenger;
 
-	private int replies;
-	private int expMsg;
+	private static int totalNodes;
+	private customInt replies;
+	private customInt expMsg;
 
+	protected static Set<Node> uniqueNodes = new HashSet<Node>();
 	protected final Set<Node> neighbours = new HashSet<Node>();
 	private List<Node> sendNeighbours;
 	private List<Node> synchroList;
-	
-//	private List<Node> path = new ArrayList<Node>();				
-//	private List<List<Node>> allPaths = new ArrayList<List<Node>>();
+
+	private List<Node> path = new ArrayList<Node>();
+	private List<List<Node>> allPaths = new ArrayList<List<Node>>();
 
 	public FinalNode(String name, boolean initiator) {
 		super(name, initiator);
 		this.name = name;
 		this.initiator = initiator;
 		awake = false;
-		replies = 0;
+		replies = new customInt(0);
+		active = new customBool(false);
 	}
 
 	@Override
@@ -44,33 +51,48 @@ public class FinalNode extends NodeAbstract {
 
 	@Override
 	public synchronized void wakeup(Node messenger) {
+		//wenn der angerufene Knoten noch nicht gestartet ist warte
+		//da es sonst zu Fehlern kommen kann
+		while(!this.active.get()) {
+			try {
+				this.wait(200);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
 		incrementReplies();
 		// Wenn der Knoten noch nicht wach ist weck ihn auf und speicher den Knoten der
 		// diesen aufgeweckt hat in messenger.
 		if (!awake) {
-			System.out.println(name + " ist nun wach von " + messenger);
+//			System.out.println(name + " ist nun wach von " + messenger);
 			this.messenger = messenger;
 			awake = true;
 			this.notifyAll();
 		} else {
-			System.out.println(name + " war schon wach. Hat aber Nachricht von " + messenger + " erhalten.");
+//			System.out.println(name + " war schon wach. Hat aber Nachricht von " + messenger + " erhalten.");
 		}
 	}
 
 	@Override
-	public synchronized void echo(Node neighbour) {
+	public synchronized void echo(Node neighbour, List<List<Node>> allPaths) {
 		incrementReplies();
-		System.out.println("Echo von " + name + " aufgerufen durch " + neighbour);
+		for (List<Node> list : allPaths) {
+			this.allPaths.add(list);
+		}
+		if(initiator) {
+//			System.out.println("Echo von " + name + " aufgerufen durch " + neighbour);
+		}
 	}
 
 	public void run() {
-		expMsg = this.neighbours.size();
-		sendNeighbours = new ArrayList<Node>(neighbours);
-		synchroList = Collections.synchronizedList(sendNeighbours);
+//		expMsg = this.neighbours.size();
+//		sendNeighbours = new ArrayList<Node>(neighbours);
+//		synchroList = Collections.synchronizedList(sendNeighbours);
 		// Teste ob Knoten initiator ist und gebe Nachbarn aus
 		isInitiator();
 		HashSettoString(neighbours);
-		//Wenn Knoten nicht wach ist: wait()
+		active.set(true);
+		// Wenn Knoten nicht wach ist: wait()
 		while (!awake) {
 			try {
 				synchronized (this) {
@@ -83,8 +105,6 @@ public class FinalNode extends NodeAbstract {
 		sendWakeup();
 	}
 
-
-	
 	private void sendWakeup() {
 		if (awake) {
 			Iterator<Node> it = neighbours.iterator();
@@ -100,64 +120,70 @@ public class FinalNode extends NodeAbstract {
 					// Und wecke den Knoten auf
 					if (!neighbour.messageSent(this)) {
 						synchroList.remove(neighbour);
-						System.out.println(name + " ruft " + neighbour + " an");
+//						System.out.println(name + " ruft " + neighbour + " an");
 						neighbour.wakeup(this);
 					} else {
-						System.out.println(
-								neighbour + " Hat diesem Knoten " + name + " schon eine WakeupNachricht geschickt.");
+//						System.out.println(
+//								neighbour + " Hat diesem Knoten " + name + " schon eine WakeupNachricht geschickt.");
 					}
 				} else {
-					System.out.println(name + " ruft nicht " + neighbour
-							+ " an da er von diesem aufgeweckt wurde");
+//					System.out.println(name + " ruft nicht " + neighbour + " an da er von diesem aufgeweckt wurde");
 				}
 			}
 		}
 		sendEcho();
 	}
-	
-	//******alte sendEcho() version******
-//		private void sendEcho() {
-//		boolean notdone = true;
-//		while (notdone) {
-//			if (replies == expMsg && !initiator) {
-//				path.add(this);
-//				messenger.echo(this);
-//				notdone = false;
-//			} else if (replies == expMsg && initiator) {
-//				System.out.println("Initiator fertig");
-//				notdone = false;
-//			} else {
-//				System.out.println(name + ": " + replies + " Nachrichten erhalten " + expMsg + " benötigt");
-//			}
-//		}
-//	}
-	
-	private void sendEcho() {
-		while (!(replies == expMsg)) {
+
+	private synchronized void sendEcho() {
+		while (!(replies.get() == expMsg.get())) {
 			try {
 				synchronized (this) {
 					this.wait(200);
-					System.out.println(name + ": " + replies + " Nachrichten erhalten " + expMsg + " benötigt");
+//					System.out.println(name + ": " + replies.get() + " Nachrichten erhalten " + expMsg.get() + " benötigt");
 				}
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		}
+		preparePath();
 		if (!initiator) {
-			messenger.echo(this);
+			messenger.echo(this, allPaths);
 		} else if (initiator) {
 			System.out.println("Initiator fertig");
+			// Gib alle bekannten Pfade aus
+			for (List<Node> list : allPaths) {
+				for (Node node : list) {
+					uniqueNodes.add(node);
+				}
+				System.out.println(list);
+			}
+			System.out.println(uniqueNodes.size());
 		} else {
 			System.out.println(name + ": " + replies + " Nachrichten erhalten " + expMsg + " benötigt");
 		}
 	}
-	
-	//sicherstellen das replies nur von einem Thread erhöht wird
+
+	private void preparePath() {
+		// Pfad vorbereiten
+		// Wenn dieser Knoten ein Blatt ist
+		if (allPaths.isEmpty()) {
+			path.add(this);
+			allPaths.add(path);
+		} else {
+			// Wenn nicht füge diesen Knoten an das Ende aller bisher bekannten Pfade
+			for (List<Node> list : allPaths) {
+				list.add(this);
+			}
+		}
+
+	}
+
+	// sicherstellen das replies nur von einem Thread erhöht wird
 	private synchronized void incrementReplies() {
-		++replies;
+		replies.increment();;
 		this.notifyAll();
 	}
-	
+
 	private void isInitiator() {
 		// Wenn der Knoten ein Initiator ist, ist er automatisch wach.
 		if (initiator) {
@@ -172,11 +198,23 @@ public class FinalNode extends NodeAbstract {
 				+ set.stream().map(Object::toString).collect(Collectors.joining(",")));
 	}
 
+	public void setupValues() {
+		expMsg = new customInt(this.neighbours.size());
+		sendNeighbours = new ArrayList<Node>(this.neighbours);
+//		synchroList = Collections.synchronizedList(new ArrayList<Node>());	
+//		for (Node node : sendNeighbours) {
+//			synchroList.add(node);
+//		}
+		synchroList = Collections.synchronizedList(sendNeighbours);
+	}
+
 	@Override
 	public void setupNeighbours(Node... neighbours) {
 		for (int i = 0; i < neighbours.length; i++) {
-			this.neighbours.add(neighbours[i]);
-			neighbours[i].hello(this);
+			if (neighbours[i] != null) {
+				this.neighbours.add(neighbours[i]);
+				neighbours[i].hello(this);
+			}
 		}
 	}
 
@@ -185,9 +223,10 @@ public class FinalNode extends NodeAbstract {
 			return false;
 		} else {
 			synchronized (this) {
-				//Dieser Knoten erwartet eine nachricht weniger da er keine wakeup nachricht von dem Knoten bekommen wird. 
-				//Da er diesem schon eine geschickt hat
-				--expMsg;
+				// Dieser Knoten erwartet eine nachricht weniger da er keine wakeup nachricht
+				// von dem Knoten bekommen wird.
+				// Da er diesem schon eine geschickt hat
+				expMsg.decrement();
 				this.notifyAll();
 			}
 			return true;
