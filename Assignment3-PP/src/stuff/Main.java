@@ -1,35 +1,44 @@
 package stuff;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public class Main {
 
-	static int nodeCount = 1000;
-	static int maxNeighbours = 10;
+	static int nodeCount;
+	static int maxNeighbours;
 	static List<NodeAbstract> nodes;
 	static boolean election = false;
-	static String graphentyp;
+	static String graphtyp;
 	static int third_type;
 	public static void main(String[] args) {
+		System.out.println(
+				"First choose the graph type. You can use Ring, Tree, "
+				+ "Complete or Random. Second, choose the number of nodes. "
+				+ "The third thing you have to do is specify the branches, only for the Tree or the maximum "
+				+ "number of neighbors, only for Random. If you do not enter anything as the third argument, "
+				+ "the value 0 is entered automatically.");
 		for (int i = 0; i < args.length; i++) {
-			if(args[i] != "") {
+			if(args[0] != "" || args[1] != "") {
 				try {
 					if(i == 0) {
-						graphentyp = args[i];
+						graphtyp = args[i];
 					}
 					if(i == 1) {
 						nodeCount = Integer.parseInt(args[i]);	
 					}
-					if((graphentyp == "Tree" || graphentyp == "Random") && i == 3) {
+					if((graphtyp == "Tree" || graphtyp == "Random") && i == 3) {
 						third_type = Integer.parseInt(args[3]);
 					}
 				}catch(Exception e) {
 					System.out.println("Error Command Line Argument: '" +i+"' not an Integer but needs to be one!");
 				}
-			}else {
-				System.out.println("Error Command Line Argument '" +i+"' missing!");
+			}else if(args[0] == "" && args[1] != ""){
+				System.out.println("Error: Graphtype is missing!");
+			}else if(args[1] == "" && args[0] != "") {
+				System.out.println("Error: Count of Nodes is missing!");
+			}else if(args[1] == "" && args[0] == "") {
+				System.out.println("Error: Graphtype and count of Nodes are missing!");
 			}
 		}
 		startThis();
@@ -146,17 +155,17 @@ public class Main {
 
 	private static void startThis() {
 		createNodes();
-		if(graphentyp == "Ring") {
+		if(graphtyp == "Ring") {
 		Ring();
 		}
-		if(graphentyp == "Random") {
+		if(graphtyp == "Random") {
 			maxNeighbours = third_type;
 			Random();
 		}
-		if(graphentyp == "Complete") {
+		if(graphtyp == "Complete") {
 			Complete();
 		}
-		if(graphentyp == "Tree") {
+		if(graphtyp == "Tree") {
 			Tree(third_type);
 		}
 		setupNodeValues();
