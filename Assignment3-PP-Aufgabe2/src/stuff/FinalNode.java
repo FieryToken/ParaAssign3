@@ -10,20 +10,24 @@ import java.util.stream.Collectors;
 
 import utils.customBool;
 import utils.customInt;
+import utils.customString;
 
 public class FinalNode extends NodeAbstract {
 
 	protected final String name;
-	private String id;
+	private customString id;
 
 	protected customBool initiator;
 	private customBool awake;
 	private customBool resetting;
 
 	private Node messenger;
-	
+	//Debug Stuff
+	private static customInt allEchoMessages = new customInt();
+	private static customInt allWakeupMessages = new customInt(0);
 	private static customInt allWinner = new customInt(0);
 	private static customInt allReplies = new customInt(0);
+	//
 	private customInt replies;
 	private customInt expMsg;
 
@@ -40,10 +44,11 @@ public class FinalNode extends NodeAbstract {
 		this.initiator = new customBool(initiator);
 		awake = new customBool(false);
 		replies = new customInt(0);
+		//wenn der Knoten ein initiator ist dann setze die Id = name
 		if (initiator) {
-			id = name;
+			id = new customString(name);
 		} else {
-			id = null;
+			id = new customString();
 		}
 		resetting = new customBool(false);
 	}
@@ -51,14 +56,14 @@ public class FinalNode extends NodeAbstract {
 	public void run() {
 		expMsg = new customInt(this.neighbours.size());
 		sendNeighbours = new ArrayList<Node>(this.neighbours);
-//		synchroList = Collections.synchronizedList(new ArrayList<Node>());	
-//		for (Node node : sendNeighbours) {
-//			synchroList.add(node);
-//		}
 		synchroList = Collections.synchronizedList(sendNeighbours);
 		// Teste ob Knoten initiator ist und gebe Nachbarn aus
 		isInitiator();
 		HashSettoString(neighbours);
+		//Wenn dieser Knoten keine Nachbarn hat dann stopt dieser Thread
+		if(neighbours.isEmpty()) {
+			Thread.currentThread().stop();
+		}
 		// Wenn Knoten nicht wach ist: wait()
 		while (!awake.get()) {
 			try {
@@ -75,16 +80,6 @@ public class FinalNode extends NodeAbstract {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-//		while (!awake.get() && resetting.get()) {
-//			try {
-//				synchronized (this) {
-//					this.wait();
-//				}
-//			} catch (InterruptedException e) {
-//				e.printStackTrace();
-//			}
-//		}
-//		sendWakeup();
 	}
 	
 	// ******************************************************************************************************************************
@@ -107,11 +102,11 @@ public class FinalNode extends NodeAbstract {
 				// Und wecke den Knoten auf
 				if (!neighbour.messageSent(this)) {
 					synchroList.remove(neighbour);
-					//System.out.println(name + " ruft " + neighbour + " an");
+//					System.out.println(name + " ruft " + neighbour + " an");
 					neighbour.electionWakeup(this, id);
 				} else {
-					//System.out.println(
-							//neighbour + " Hat diesem Knoten " + name + " schon eine WakeupNachricht geschickt.");
+//					System.out.println(
+//							neighbour + " Hat diesem Knoten " + name + " schon eine WakeupNachricht geschickt.");
 				}
 			} else {
 				//System.out.println(name + " ruft nicht " + neighbour + " an da er von diesem aufgeweckt wurde");
@@ -121,11 +116,12 @@ public class FinalNode extends NodeAbstract {
 	}
 
 	private synchronized void sendElectionEcho() {
+		//wenn der Knoten noch nicht genügend Nachrichten erhalten hat
 		while (!(replies.get() == expMsg.get())) {
 			try {
 				synchronized (this) {
 					this.wait(200);
-					System.out.println(name + ": " + replies.get() + " Nachrichten erhalten " + expMsg.get() + " benötigt");
+//					System.out.println(name + ": " + replies.get() + " Nachrichten erhalten " + expMsg.get() + " benötigt");
 				}
 			} catch (InterruptedException e) {
 				e.printStackTrace();
@@ -136,8 +132,10 @@ public class FinalNode extends NodeAbstract {
 			messenger.electionEcho(this, id);
 		}
 		if (initiator.get()) {
+			//Ersten name der id holen
 			String substring = id.substring(0,name.length());
-			System.out.println("Substring: "+substring );
+			//System.out.println("Substring: "+substring );
+			//Prüfen ob der erste name in der id = diesem name ist. Wenn ja hat dieser Knoten gewonnen
 			if (substring.equals(name)) {
 				System.out.println("*****************\nKnoten " + name + " hat die Wahl gewonnen.\n*****************");	
 				initiator.set(true);
@@ -146,21 +144,21 @@ public class FinalNode extends NodeAbstract {
 				initiator.set(false);
 				System.out.println("Knoten " + name + " hat die Wahl verloren.");
 			}
-			System.out.println("Knoten "+name+" id : "+id);
-			System.out.println("Knoten "+name+" Replies: "+replies.get()+" expMsg : "+expMsg.get());
+			//System.out.println("Knoten "+name+" id : "+id.get());
 		}
-		reset();
-		System.out.println("AllReplies "+allReplies.get());
-		System.out.println("AllWinner "+allWinner.get());
+		//reset();
+		//System.out.println("AllReplies "+allReplies.get());
+		//System.out.println("AllWinner "+allWinner.get());
 	}
 	
-	public synchronized void electionWakeup(Node messenger, String id) {
+	public synchronized void electionWakeup(Node messenger, customString id) {
+		incrementWakeupMessages();
+		//System.out.println("Nachricht nummer: "+allWakeupMessages.get()+" "+messenger+" schickt "+ name + " eine Wakeup Nachricht");
 		if (this.id != null) {
 			//Wenn der letzte teil der id dieses Knoten dem namen entspricht fahre fort 
-			
 				if (0 > this.id.compareTo(id)) {
-					this.id = id;
-					this.id = id + name;
+					this.id.set(id);
+					this.id.append(name);
 				}
 				// wenn diese id größer ist als die übersendete
 				else if (0 < this.id.compareTo(id)) {
@@ -177,7 +175,7 @@ public class FinalNode extends NodeAbstract {
 		// wenn id == null ist ist dieser Knoten kein Initiator und hat grade das erste
 		// mal eine Nachricht bekommen
 		if (this.id == null) {
-			this.id = id + name;
+			this.id.append(id+name);
 		}
 		// wenn diese id kleiner ist als die übersendete
 
@@ -198,13 +196,15 @@ public class FinalNode extends NodeAbstract {
 	}
 	
 	@Override
-	public synchronized void electionEcho(Node neighbour, String id) {
+	public synchronized void electionEcho(Node neighbour, customString id) {
+		incrementEchoMessages();
+		//System.out.println("Nachricht nummer: "+allEchoMessages.get() +" "+neighbour+" schickt "+ name + " eine Echo Nachricht");
 		if (this.id == null) {
-			this.id = id + name;
+			this.id.set(id+name);
 		}
 		// wenn diese id kleiner ist als die übersendete
 		else if (0 > this.id.compareTo(id)) {
-			this.id = id + name;
+			this.id.set(id+name);
 		}
 		// wenn diese id größer ist als die übersendete
 		else if (0 < this.id.compareTo(id)) {
@@ -368,10 +368,6 @@ public class FinalNode extends NodeAbstract {
 	public void setupValues() {
 		expMsg = new customInt(this.neighbours.size());
 		sendNeighbours = new ArrayList<Node>(this.neighbours);
-//		synchroList = Collections.synchronizedList(new ArrayList<Node>());	
-//		for (Node node : sendNeighbours) {
-//			synchroList.add(node);
-//		}
 		synchroList = Collections.synchronizedList(sendNeighbours);
 	}
 	
@@ -405,9 +401,16 @@ public class FinalNode extends NodeAbstract {
 		}
 	}
 	
-	public synchronized void changeId(String newId) {
+	public synchronized void changeId(customString newId) {
 		synchronized(this) {
-			this.id = newId+name;
+			this.id.set(newId+name);
 		}
+	}
+	
+	public static synchronized void incrementWakeupMessages() {
+		allWakeupMessages.increment();
+	}
+	public static synchronized void incrementEchoMessages() {
+		allEchoMessages.increment();
 	}
 }

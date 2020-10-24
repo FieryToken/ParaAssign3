@@ -8,11 +8,16 @@ public class Main {
 	static int nodeCount;
 	static int maxNeighbours;
 	static List<NodeAbstract> nodes;
-	static boolean election = true;
+	static boolean election = false;
 	static String graphtyp;
 	static int third_type;
 	public static void main(String[] args) {
-
+//		System.out.println(
+//				"First choose the graph type. You can use Ring, Tree, "
+//				+ "Complete or Random. Second, choose the number of nodes. "
+//				+ "The third thing you have to do is specify the branches, only for the Tree or the maximum "
+//				+ "number of neighbors, only for Random. If you do not enter anything as the third argument, "
+//				+ "the value 0 is entered automatically.");
 		for (int i = 0; i < args.length; i++) {
 			if(args[0] != "" || args[1] != "") {
 				try {
@@ -186,7 +191,7 @@ public class Main {
 
 	private static void Random() {
 		for (NodeAbstract node : nodes) {
-			//System.out.println("maxNeighbours: "+maxNeighbours);
+			System.out.println("maxNeighbours: "+maxNeighbours);
 			int neighboursSize = (int) ((Math.random() * (maxNeighbours - 1)) + 1);
 			Node[] neighbours = new Node[neighboursSize];
 			for (int n = 0; n < neighboursSize; ++n) {
@@ -287,13 +292,6 @@ public class Main {
 				} else {
 					nodes.add(NodeFactory.getInstance(Integer.toString(i), false));
 				}
-			}
-		}else {
-			boolean leader = false;
-			for (int i = 0; i < nodeCount; ++i) {
-				leader = Math.random() < 0.5;
-				String name = RandomString.createString(10);
-				nodes.add(NodeFactory.getInstance(name, leader));
 			}
 		}
 	}
